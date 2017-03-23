@@ -13,15 +13,14 @@ if(action == 'E'):
 	result = encryptWithSelectedMode(key, binary, totalRounds, int(info['mode']), info['iv'])
 
 	if(result == False):
-		print("some error occurred. check the input")
+		print("\nsome error occurred. check the input")
 	else:
 		printResult(result, info)
 elif(action == 'D'):
 	decryptionInfo = getDecryptionInfo()
-	print (decryptionInfo)
 	dKey = getNineBitKey(getJulianDate(decryptionInfo['dob']))
 	decryptedResult = decryptWithSelectedMode(dKey, decryptionInfo)
 	if(decryptedResult == False):
-		print("some error occurred. try again")
+		print("\nsome error occurred. try again")
 	else:
 		printDecryptResult(decryptedResult, decryptionInfo)

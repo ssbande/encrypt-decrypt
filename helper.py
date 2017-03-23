@@ -98,7 +98,6 @@ def getDecryptionInfo():
 	dob = askDob()
 	totalRounds = askRounds()
 	encryptedString = askEncryptedString()
-	print ("Note: currently decryption is only through DES. ")
 	return {"dob": dob, "mode": '1', "totalRounds": totalRounds, "encData": encryptedString}
 
 def getJulianDate(dateInstance):
@@ -138,7 +137,7 @@ def encryptWithSelectedMode(key, binary, totalRounds, mode, iv):
 				"ofb": encryptDataOfb(key, binary, totalRounds, iv),
 				"ctr": encryptDataCtr(key, binary, totalRounds, iv)
 			}
-	except ValueError:
+	except Exception:
 		return False
 
 def generateTwelveBlockedData(binary):
@@ -226,32 +225,37 @@ def generateDataForBlock(currRound, totalRounds, key, left, right):
 		return nextRight + right
 
 def decryptWithSelectedMode(key, info):
-	if(int(info['mode']) == 1):
-		return decryptData(key, info['encData'], info['totalRounds'])
-	else:
-		print "Other modes decryption not implemented yet"
+	try:
+		import sys
+		sys.stdout.write(u"\U0001F6EB")
+		for i in range(10):
+			time.sleep(0.3)
+			sys.stdout.write('.'), sys.stdout.flush()
 
-def decryptData(key, encData, totalRounds):
-	try: 
-		binaryBlocks = generateTwelveBlockedData(encData)
-		allBlockResult = ''
-
-		for block in binaryBlocks:
-			l0 = block[:6]
-			r0 = block[6:]
-			blockRes = decryptDataForBlock(int(totalRounds)-1, totalRounds, key, l0, r0)
-			allBlockResult += blockRes
-		bStr = prependZeroes(allBlockResult, 12)
-		sixBlocks = [bStr[i:i+6] for i in range(0, len(bStr), 6)]
-
-		inputString = ''
-		for sblock in sixBlocks:
-			inputString += getPropFromValue(int(sblock, 2))
-
-		return {"allBlockResult": allBlockResult, "inputString": inputString}
-	except ValueError:
+		if(int(info['mode']) == 1):
+			return decryptData(key, info['encData'], info['totalRounds'])
+		else:
+			print ("Other modes decryption not implemented yet")
+	except Exception:
 		return False
 
+def decryptData(key, encData, totalRounds):
+	binaryBlocks = generateTwelveBlockedData(encData)
+	allBlockResult = ''
+
+	for block in binaryBlocks:
+		l0 = block[:6]
+		r0 = block[6:]
+		blockRes = decryptDataForBlock(int(totalRounds)-1, totalRounds, key, l0, r0)
+		allBlockResult += blockRes
+	bStr = prependZeroes(allBlockResult, 12)
+	sixBlocks = [bStr[i:i+6] for i in range(0, len(bStr), 6)]
+
+	inputString = ''
+	for sblock in sixBlocks:
+		inputString += getPropFromValue(int(sblock, 2))
+
+	return {"allBlockResult": allBlockResult, "inputString": inputString}
 
 def decryptDataForBlock(currRound, totalRounds, key, left, right):
 	edKey = getRoundKey(currRound, key)
@@ -325,7 +329,7 @@ def printDecryptResult(output, info):
 	print (bcolors.OKGREEN + "Encrypted Data : " + bcolors.ENDC + info['encData'])
 	print (bcolors.OKGREEN + 'Human Readable : ' + bcolors.ENDC + " ".join(info['encData'][i:i+6] for i in range(0, len(info['encData']), 6)))
 	print ('-----\n')
-	print (bcolors.OKBLUE + ":: USER INFO ::" + bcolors.ENDC)
+	print (bcolors.OKBLUE + ":: DECRYPTED USER INFO ::" + bcolors.ENDC)
 	print (bcolors.OKGREEN + "Name          : " + bcolors.ENDC + output['inputString'].split()[0].replace("_", ""))
 	print (bcolors.OKGREEN + "Student ID    : " + bcolors.ENDC + output['inputString'].split()[1].replace(".", ""))
 	print (bcolors.OKGREEN + "Date of Birth : " + bcolors.ENDC + info['dob'])
