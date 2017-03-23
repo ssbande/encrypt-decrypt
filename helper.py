@@ -81,7 +81,7 @@ def getInfo():
 	if(nameLen != 10):
 		remainingDigits = (10 - nameLen)
 		for x in range(0, remainingDigits):
-			name = name + 'x'
+			name = name + '_'
 
 	studentId = askStudentId()
 	dob = askDob()
@@ -116,27 +116,30 @@ def getBinaryDataForInput(info):
 	return binary
 
 def encryptWithSelectedMode(key, binary, totalRounds, mode, iv):
-	import sys
-	sys.stdout.write(u"\U0001F6EB")
-	for i in range(10):
-		time.sleep(0.3)
-		sys.stdout.write('.'), sys.stdout.flush()
+	try:
+		import sys
+		sys.stdout.write(u"\U0001F6EB")
+		for i in range(10):
+			time.sleep(0.3)
+			sys.stdout.write('.'), sys.stdout.flush()
 
-	if(mode == 1):
-		return encryptData(key, binary, totalRounds)
-	elif(mode == 2):
-		return encryptDataCbc(key, binary, totalRounds, iv)
-	elif(mode == 3):
-		return encryptDataOfb(key, binary, totalRounds, iv)
-	elif(mode == 4):
-		return encryptDataCtr(key, binary, totalRounds, iv)
-	else:
-		return {
-			"des": encryptData(key, binary, totalRounds),
-			"cbc": encryptDataCbc(key, binary, totalRounds, iv),
-			"ofb": encryptDataOfb(key, binary, totalRounds, iv),
-			"ctr": encryptDataCtr(key, binary, totalRounds, iv)
-		}
+		if(mode == 1):
+			return encryptData(key, binary, totalRounds)
+		elif(mode == 2):
+			return encryptDataCbc(key, binary, totalRounds, iv)
+		elif(mode == 3):
+			return encryptDataOfb(key, binary, totalRounds, iv)
+		elif(mode == 4):
+			return encryptDataCtr(key, binary, totalRounds, iv)
+		else:
+			return {
+				"des": encryptData(key, binary, totalRounds),
+				"cbc": encryptDataCbc(key, binary, totalRounds, iv),
+				"ofb": encryptDataOfb(key, binary, totalRounds, iv),
+				"ctr": encryptDataCtr(key, binary, totalRounds, iv)
+			}
+	except ValueError:
+		return False
 
 def generateTwelveBlockedData(binary):
 	bStr = prependZeroes(binary, 12)
@@ -229,22 +232,26 @@ def decryptWithSelectedMode(key, info):
 		print "Other modes decryption not implemented yet"
 
 def decryptData(key, encData, totalRounds):
-	binaryBlocks = generateTwelveBlockedData(encData)
-	allBlockResult = ''
+	try: 
+		binaryBlocks = generateTwelveBlockedData(encData)
+		allBlockResult = ''
 
-	for block in binaryBlocks:
-		l0 = block[:6]
-		r0 = block[6:]
-		blockRes = decryptDataForBlock(int(totalRounds)-1, totalRounds, key, l0, r0)
-		allBlockResult += blockRes
-	bStr = prependZeroes(allBlockResult, 12)
-	sixBlocks = [bStr[i:i+6] for i in range(0, len(bStr), 6)]
+		for block in binaryBlocks:
+			l0 = block[:6]
+			r0 = block[6:]
+			blockRes = decryptDataForBlock(int(totalRounds)-1, totalRounds, key, l0, r0)
+			allBlockResult += blockRes
+		bStr = prependZeroes(allBlockResult, 12)
+		sixBlocks = [bStr[i:i+6] for i in range(0, len(bStr), 6)]
 
-	inputString = ''
-	for sblock in sixBlocks:
-		inputString += getPropFromValue(int(sblock, 2))
+		inputString = ''
+		for sblock in sixBlocks:
+			inputString += getPropFromValue(int(sblock, 2))
 
-	return {"allBlockResult": allBlockResult, "inputString": inputString}
+		return {"allBlockResult": allBlockResult, "inputString": inputString}
+	except ValueError:
+		return False
+
 
 def decryptDataForBlock(currRound, totalRounds, key, left, right):
 	edKey = getRoundKey(currRound, key)
@@ -305,6 +312,24 @@ def printResult(output, info):
 	else:
 		print (bcolors.OKGREEN + 'Encrypted Value: ' + bcolors.ENDC + output) 
 		print (bcolors.OKGREEN + 'Human Readable : ' + bcolors.ENDC + " ".join(output[i:i+6] for i in range(0, len(output), 6)))
+
+def printDecryptResult(output, info):
+	print(u"\U0001F6EC")
+	time.sleep(0.2)
+	print ("\n")
+	print (bcolors.OKBLUE + ":: ENCRYPTION INFO ::" + bcolors.ENDC)
+	print (bcolors.OKGREEN + "# Rounds : "  + bcolors.ENDC + info['totalRounds'])
+	print (bcolors.OKGREEN + "Mode(s)  : " + bcolors.ENDC + getModeName(info['mode']))
+	print ('-----\n')
+	print (bcolors.OKBLUE + ":: ENCRYPTED INFO ::" + bcolors.ENDC)
+	print (bcolors.OKGREEN + "Encrypted Data : " + bcolors.ENDC + info['encData'])
+	print (bcolors.OKGREEN + 'Human Readable : ' + bcolors.ENDC + " ".join(info['encData'][i:i+6] for i in range(0, len(info['encData']), 6)))
+	print ('-----\n')
+	print (bcolors.OKBLUE + ":: USER INFO ::" + bcolors.ENDC)
+	print (bcolors.OKGREEN + "Name          : " + bcolors.ENDC + output['inputString'].split()[0].replace("_", ""))
+	print (bcolors.OKGREEN + "Student ID    : " + bcolors.ENDC + output['inputString'].split()[1].replace(".", ""))
+	print (bcolors.OKGREEN + "Date of Birth : " + bcolors.ENDC + info['dob'])
+
 
 class bcolors:
   HEADER = '\033[95m'
