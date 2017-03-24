@@ -12,15 +12,17 @@ def checkValidDob(date):
 
 def askAction():
 	action = prompt(
-		message="Select the action:\n 1. Encryption\n 2. Decryption\nEnter the number against the action for selection",
-		errormessage="Selection is mandatory. Value must be between 1 to 2",
-		isvalid= lambda m: int(m) > 0 and int(m) < 3,
+		message="Select the action:\n 1. Encryption\n 2. Decryption\n 3. Encrypt-Decrypt \nEnter the number against the action for selection",
+		errormessage="Selection is mandatory. Value must be between 1 to 3",
+		isvalid= lambda m: int(m) > 0 and int(m) < 4,
 		isValidRegex= lambda m: re.match("^-?[0-9]$", m)
 	)
 
 	if(int(action) == 1):
 		return 'E'
-	else:
+	elif(int(action) == 3):
+		return 'B'
+	elif(int(action) == 2):
 		return 'D'
 
 def askName():
@@ -76,9 +78,12 @@ def askIv():
 		isvalid= lambda m: len(m) == 2,
 		isValidRegex= lambda m: re.match("^[A-Za-z]*$", m))
 
-def askEncryptedString():
+def askEncryptedString(decryptOption = ''):
+	ques = "Enter encrypted string"
+	if(decryptOption != ''):
+		ques += " for " + decryptOption
 	return prompt(
-			message="Enter encrypted string",
+			message= ques,
 			errormessage="it is mandatory. \nAllowed: Only binary numbers (0/1).",
 			isvalid= lambda m: len(m) > 0,
 			isValidRegex= lambda m: re.match("^-?[0-1]+$", m))
@@ -90,7 +95,7 @@ def getInfo():
 	if(nameLen != 10):
 		remainingDigits = (10 - nameLen)
 		for x in range(0, remainingDigits):
-			name = name + '_'
+			name = name + 'X'
 
 	studentId = askStudentId()
 	dob = askDob()
@@ -106,14 +111,27 @@ def getInfo():
 def getDecryptionInfo():
 	dob = askDob()
 	totalRounds = askRounds()
-	encryptedString = askEncryptedString()
-	mode = askMode(False)
+	encryptedString = ''
+	mode = askMode()
 
 	iv = ''
 	if(int(mode) > 1):
 		iv = askIv()
 
-	return {"dob": dob, "mode": mode, "totalRounds": totalRounds, "encData": encryptedString, "iv": iv}
+	# desEncData = ''
+	# cbcEncData = ''
+	# ofbEncData = ''
+	# ctrEncData = ''
+	# if(int(mode) == 5):
+	# 	desEncData = askEncryptedString('DES')
+	# 	cbcEncData = askEncryptedString('CBC')
+	# 	ofbEncData = askEncryptedString('OFB')
+	# 	ctrEncData = askEncryptedString('CTR')
+	# else:
+	# 	encryptedString = askEncryptedString()
+
+	return {"dob": dob, "mode": mode, "totalRounds": totalRounds, "encData": encryptedString, "iv": iv }
+	# "desEncData": desEncData, "cbcEncData": cbcEncData, "ofbEncData": ofbEncData, "ctrEncData": ctrEncData}
 
 def getJulianDate(dateInstance):
 	date = datetime.datetime.strptime(dateInstance, '%Y-%m-%d').date()
@@ -199,6 +217,7 @@ def encryptDataCtr(key, binary, totalRounds, iv):
 		counter = prependZeroes(counter, 6)
 		ctrInput = getBinaryForDigit(getXorValue(ivBinary, counter))
 		blockRes = generateDataForCtr(ctrInput, binaryBlocks[x], key, totalRounds)
+		print("block: " + str(binaryBlocks[x]) + " counter: " + str(counter) + " ctrNounce: " + str(ctrInput) + " ctrNoune#: " + str(getXorValue(ivBinary, counter)) + " res: " + str(blockRes))
 		allBlockResult += blockRes
 	return allBlockResult
 
@@ -243,6 +262,13 @@ def decryptWithSelectedMode(key, info):
 			return decryptDataOfb(key, info['encData'], info['totalRounds'], info['iv'])
 		elif(int(info['mode']) == 4):
 			return decryptDataCtr(key, info['encData'], info['totalRounds'], info['iv'])
+		else:
+			return {
+				"des": decryptData(key, info['desEncData'], info['totalRounds']),
+				"cbc": decryptDataCbc(key, info['cbcEncData'], info['totalRounds'], info['iv']),
+				"ofb": decryptDataOfb(key, info['ofbEncData'], info['totalRounds'], info['iv']),
+				"ctr": decryptDataCtr(key, info['ctrEncData'], info['totalRounds'], info['iv'])
+			}
 	except Exception as e:
 		print(e)
 		return False
@@ -371,9 +397,54 @@ def printDecryptResult(output, info):
 	print (bcolors.OKGREEN + "Human Readable : " + bcolors.ENDC + " ".join(info['encData'][i:i+6] for i in range(0, len(info['encData']), 6)))
 	print ('-----\n')
 	print (bcolors.OKBLUE + ":: DECRYPTED USER INFO ::" + bcolors.ENDC)
-	print (bcolors.OKGREEN + "Name          : " + bcolors.ENDC + output['inputString'].split()[0].replace("_", ""))
+	print (bcolors.OKGREEN + "Name          : " + bcolors.ENDC + output['inputString'].split()[0].replace("X", ""))
 	print (bcolors.OKGREEN + "Student ID    : " + bcolors.ENDC + output['inputString'].split()[1].replace(".", ""))
 	print (bcolors.OKGREEN + "Date of Birth : " + bcolors.ENDC + info['dob'])
+
+def printEncryptDecryptResult(output, decryptionOutput, info):
+	print ('-----\n')
+	print (bcolors.OKBLUE + ":: MODE ::" + bcolors.ENDC)
+	print (bcolors.OKGREEN + "# Rounds : "  + bcolors.ENDC + info['totalRounds'])
+	print (bcolors.OKGREEN + "Mode(s)  : " + bcolors.ENDC + getModeName(info['mode']))
+	print ('-----\n')
+	print (bcolors.OKBLUE + ":: RESULT ::" + bcolors.ENDC)
+	if(int(info['mode']) == 5):
+		print ("Result DES Encryption ----------------")
+		print (bcolors.OKGREEN + 'Encrypted Value: ' + bcolors.ENDC + output['des']) 
+		print (bcolors.OKGREEN + 'Human Readable : ' + bcolors.ENDC + " ".join(output['des'][i:i+6] for i in range(0, len(output['des']), 6)))
+		print ("Result DES Decryption ----------------")
+		print (bcolors.OKGREEN + 'Name          : ' + bcolors.ENDC + decryptionOutput['des']['inputString'].split()[0].replace("X", ""))
+		print (bcolors.OKGREEN + "Student ID    : " + bcolors.ENDC + decryptionOutput['des']['inputString'].split()[1].replace(".", ""))
+		print (bcolors.OKGREEN + "Date of Birth : " + bcolors.ENDC + info['dob'])
+		print ("Result CBC Encryption ----------------")
+		print (bcolors.OKGREEN + 'Encrypted Value: ' + bcolors.ENDC + output['cbc']) 
+		print (bcolors.OKGREEN + 'Human Readable : ' + bcolors.ENDC + " ".join(output['cbc'][i:i+6] for i in range(0, len(output['cbc']), 6)))
+		print ("Result CBC Decryption ----------------")
+		print (bcolors.OKGREEN + 'Name          : ' + bcolors.ENDC + decryptionOutput['cbc']['inputString'].split()[0].replace("X", ""))
+		print (bcolors.OKGREEN + "Student ID    : " + bcolors.ENDC + decryptionOutput['cbc']['inputString'].split()[1].replace(".", ""))
+		print (bcolors.OKGREEN + "Date of Birth : " + bcolors.ENDC + info['dob'])
+		print ("Result OFB ----------------")
+		print (bcolors.OKGREEN + 'Encrypted Value: ' + bcolors.ENDC + output['ofb']) 
+		print (bcolors.OKGREEN + 'Human Readable : ' + bcolors.ENDC + " ".join(output['ofb'][i:i+6] for i in range(0, len(output['ofb']), 6)))
+		print ("Result OFB Decryption ----------------")
+		print (bcolors.OKGREEN + 'Name          : ' + bcolors.ENDC + decryptionOutput['ofb']['inputString'].split()[0].replace("X", ""))
+		print (bcolors.OKGREEN + "Student ID    : " + bcolors.ENDC + decryptionOutput['ofb']['inputString'].split()[1].replace(".", ""))
+		print (bcolors.OKGREEN + "Date of Birth : " + bcolors.ENDC + info['dob'])
+		print ("Result CTR ----------------")
+		print (bcolors.OKGREEN + 'Encrypted Value: ' + bcolors.ENDC + output['ctr']) 
+		print (bcolors.OKGREEN + 'Human Readable : ' + bcolors.ENDC + " ".join(output['ctr'][i:i+6] for i in range(0, len(output['ctr']), 6)))
+		print ("Result CTR Decryption ----------------")
+		print (bcolors.OKGREEN + 'Name          : ' + bcolors.ENDC + decryptionOutput['ctr']['inputString'].split()[0].replace("X", ""))
+		print (bcolors.OKGREEN + "Student ID    : " + bcolors.ENDC + decryptionOutput['ctr']['inputString'].split()[1].replace(".", ""))
+		print (bcolors.OKGREEN + "Date of Birth : " + bcolors.ENDC + info['dob'])
+	else:
+		print ("Result Encryption ----------------")
+		print (bcolors.OKGREEN + 'Encrypted Value: ' + bcolors.ENDC + output) 
+		print (bcolors.OKGREEN + 'Human Readable : ' + bcolors.ENDC + " ".join(output[i:i+6] for i in range(0, len(output), 6)))
+		print ("Result Decryption ----------------")
+		print (bcolors.OKGREEN + 'Name          : ' + bcolors.ENDC + decryptionOutput['inputString'].split()[0].replace("X", ""))
+		print (bcolors.OKGREEN + "Student ID    : " + bcolors.ENDC + decryptionOutput['inputString'].split()[1].replace(".", ""))
+		print (bcolors.OKGREEN + "Date of Birth : " + bcolors.ENDC + info['dob'])
 
 def prompt(message, errormessage, isvalid, isValidRegex):
     res = None

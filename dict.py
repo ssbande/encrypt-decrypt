@@ -53,9 +53,9 @@ def getModeName(val):
 def getPropFromValue(val):
 	# print('dict values for ' + str(val))
 	# print(list(dictionary)[int(val) - 1])
-	res = list(dictionary)[int(val) - 1 ]
-	# print(dictionary.values().index(0))
-	# res = dictionary.keys()[dictionary.values().index(int(val))]
+	# res = list(dictionary)[int(val) - 1 ]
+	# print(dictionary.values().index(int(val)))
+	res = dictionary.keys()[dictionary.values().index(int(val))]
 	return res
 
 def getDictionaryDataFromBinary(allBlockResult):
