@@ -1,4 +1,4 @@
-from dict import getBinaryForDigit, getS1ValueFor, getS2ValueFor, getBinaryStringFor, prependZeroes, getModeName, getPropFromValue
+from dict import getBinaryForDigit, getS1ValueFor, getS2ValueFor, getBinaryStringFor, prependZeroes, getModeName, getPropFromValue, getDictionaryDataFromBinary
 import re
 import datetime
 import time
@@ -132,7 +132,6 @@ def getBinaryDataForInput(info):
 def encryptWithSelectedMode(key, binary, totalRounds, mode, iv):
 	try:
 		if(mode == 1):
-			# print ('starting mode 1')
 			return encryptData(key, binary, totalRounds)
 		elif(mode == 2):
 			return encryptDataCbc(key, binary, totalRounds, iv)
@@ -257,13 +256,8 @@ def decryptData(key, encData, totalRounds):
 		r0 = block[6:]
 		blockRes = decryptDataForBlock(int(totalRounds)-1, totalRounds, key, l0, r0)
 		allBlockResult += blockRes
-	bStr = prependZeroes(allBlockResult, 12)
-	sixBlocks = [bStr[i:i+6] for i in range(0, len(bStr), 6)]
-
-	inputString = ''
-	for sblock in sixBlocks:
-		inputString += getPropFromValue(int(sblock, 2))
-
+	
+	inputString = getDictionaryDataFromBinary(allBlockResult)
 	return {"allBlockResult": allBlockResult, "inputString": inputString}
 
 def decryptDataForBlock(currRound, totalRounds, key, left, right):
@@ -290,14 +284,8 @@ def decryptDataCbc(key, encData, totalRounds, iv):
 		blockRes = decryptDataForCbc(key, block, totalRounds, ivBinary)
 		allBlockResult += blockRes
 		ivBinary = block
-	
-	bStr = prependZeroes(allBlockResult, 12)
-	sixBlocks = [bStr[i:i+6] for i in range(0, len(bStr), 6)]
 
-	inputString = ''
-	for sblock in sixBlocks:
-		inputString += getPropFromValue(int(sblock, 2))
-
+	inputString = getDictionaryDataFromBinary(allBlockResult)
 	return {"allBlockResult": allBlockResult, "inputString": inputString}
 
 def decryptDataForCbc(key, block, totalRounds, iv):
@@ -317,14 +305,7 @@ def decryptDataOfb(key, encData, totalRounds, iv):
 		blockRes = decryptDataForOfb(ivBinary, key, block, totalRounds)
 		allBlockResult += blockRes['allBlockResult']
 		ivBinary = blockRes['encValue']
-
-	bStr = prependZeroes(allBlockResult, 12)
-	sixBlocks = [bStr[i:i+6] for i in range(0, len(bStr), 6)]
-
-	inputString = ''
-	for sblock in sixBlocks:
-		inputString += getPropFromValue(int(sblock, 2))
-
+	inputString = getDictionaryDataFromBinary(allBlockResult)
 	return {"allBlockResult": allBlockResult, "inputString": inputString}
 
 def decryptDataForOfb(iv, key, block, totalRounds):
@@ -335,20 +316,8 @@ def decryptDataForOfb(iv, key, block, totalRounds):
 
 def decryptDataCtr(key, encData, totalRounds, iv):
 	allBlockResult = encryptDataCtr(key, encData, int(totalRounds), iv)
-	bStr = prependZeroes(allBlockResult, 12)
-	sixBlocks = [bStr[i:i+6] for i in range(0, len(bStr), 6)]
-
-	inputString = ''
-	for sblock in sixBlocks:
-		inputString += getPropFromValue(int(sblock, 2))
+	inputString = getDictionaryDataFromBinary(allBlockResult)
 	return {"allBlockResult": allBlockResult, "inputString": inputString}
-
-def decryptDataForCtr(nounceCtr, key, block, totalRounds):
-	blockCipherResult = encryptData(key, nounceCtr, int(totalRounds))
-	xoredResult = getBinaryForDigit(getXorValue(block, blockCipherResult))
-	xoredResult = prependZeroes(xoredResult, 12)
-	# print('xoredResult: ' +  xoredResult)
-	return blockCipherResult
 
 def getXorValue(bnum1, bnum2):
 	return int(bnum1, 2)^int(bnum2, 2)

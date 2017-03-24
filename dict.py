@@ -57,3 +57,13 @@ def getPropFromValue(val):
 	# print(dictionary.values().index(0))
 	# res = dictionary.keys()[dictionary.values().index(int(val))]
 	return res
+
+def getDictionaryDataFromBinary(allBlockResult):
+	bStr = prependZeroes(allBlockResult, 12)
+	sixBlocks = [bStr[i:i+6] for i in range(0, len(bStr), 6)]
+
+	inputString = ''
+	for sblock in sixBlocks:
+		inputString += getPropFromValue(int(sblock, 2))
+
+	return inputString
