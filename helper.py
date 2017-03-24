@@ -51,11 +51,21 @@ def askRounds():
 		isvalid= lambda s: int(s) > 0,
 		isValidRegex= lambda s: re.match("^-?[0-9]+$", s))
 
-def askMode():
+def askMode(includeAll = True):
+	quesAll = "Select the mode of operation:\n 1. DES 2. CBC 3. OFB 4. CTR 5. All\nEnter the number against the mode for selection"
+	quesNoAll = "Select the mode of operation:\n 1. DES 2. CBC 3. OFB 4. CTR\nEnter the number against the mode for selection"
+	msg = ''
+	checkValue = 5
+	if(includeAll):
+		msg = quesAll
+		checkValue = 6
+	else:
+		msg = quesNoAll
+
 	return prompt(
-		message="Select the mode of operation:\n 1. DES 2. CBC 3. OFB 4. CTR 5. All\nEnter the number against the mode for selection",
-		errormessage="Selection is mandatory. Value must be between 1 to 5",
-		isvalid= lambda m: int(m) > 0 and int(m) < 6,
+		message= msg,
+		errormessage="Selection is mandatory. Value must be between 1 to " + str(checkValue -1),
+		isvalid= lambda m: int(m) > 0 and int(m) < checkValue,
 		isValidRegex= lambda m: re.match("^-?[0-9]$", m)
 	)
 
@@ -75,7 +85,6 @@ def askEncryptedString():
 
 def getInfo():
 	name = askName()
-
 	originalName = name
 	nameLen = len(name)
 	if(nameLen != 10):
@@ -98,7 +107,13 @@ def getDecryptionInfo():
 	dob = askDob()
 	totalRounds = askRounds()
 	encryptedString = askEncryptedString()
-	return {"dob": dob, "mode": '1', "totalRounds": totalRounds, "encData": encryptedString}
+	mode = askMode(False)
+
+	iv = ''
+	if(int(mode) > 1):
+		iv = askIv()
+
+	return {"dob": dob, "mode": mode, "totalRounds": totalRounds, "encData": encryptedString, "iv": iv}
 
 def getJulianDate(dateInstance):
 	date = datetime.datetime.strptime(dateInstance, '%Y-%m-%d').date()
@@ -116,13 +131,8 @@ def getBinaryDataForInput(info):
 
 def encryptWithSelectedMode(key, binary, totalRounds, mode, iv):
 	try:
-		import sys
-		sys.stdout.write(u"\U0001F6EB")
-		for i in range(10):
-			time.sleep(0.3)
-			sys.stdout.write('.'), sys.stdout.flush()
-
 		if(mode == 1):
+			# print ('starting mode 1')
 			return encryptData(key, binary, totalRounds)
 		elif(mode == 2):
 			return encryptDataCbc(key, binary, totalRounds, iv)
@@ -137,7 +147,8 @@ def encryptWithSelectedMode(key, binary, totalRounds, mode, iv):
 				"ofb": encryptDataOfb(key, binary, totalRounds, iv),
 				"ctr": encryptDataCtr(key, binary, totalRounds, iv)
 			}
-	except Exception:
+	except Exception as e:
+		print (e)
 		return False
 
 def generateTwelveBlockedData(binary):
@@ -187,7 +198,7 @@ def encryptDataCtr(key, binary, totalRounds, iv):
 	for x in range(0, len(binaryBlocks)):
 		counter = getBinaryForDigit(x)
 		counter = prependZeroes(counter, 6)
-		ctrInput = ivBinary + counter
+		ctrInput = getBinaryForDigit(getXorValue(ivBinary, counter))
 		blockRes = generateDataForCtr(ctrInput, binaryBlocks[x], key, totalRounds)
 		allBlockResult += blockRes
 	return allBlockResult
@@ -205,7 +216,6 @@ def encryptData(key, binary, totalRounds):
 	for block in binaryBlocks:
 		l0 = block[:6]
 		r0 = block[6:]
-		# print block
 		blockRes = generateDataForBlock(0, totalRounds, key, l0, r0)
 		allBlockResult += blockRes
 	return allBlockResult
@@ -226,17 +236,16 @@ def generateDataForBlock(currRound, totalRounds, key, left, right):
 
 def decryptWithSelectedMode(key, info):
 	try:
-		import sys
-		sys.stdout.write(u"\U0001F6EB")
-		for i in range(10):
-			time.sleep(0.3)
-			sys.stdout.write('.'), sys.stdout.flush()
-
 		if(int(info['mode']) == 1):
 			return decryptData(key, info['encData'], info['totalRounds'])
-		else:
-			print ("Other modes decryption not implemented yet")
-	except Exception:
+		elif(int(info['mode']) == 2):
+			return decryptDataCbc(key, info['encData'], info['totalRounds'], info['iv'])
+		elif(int(info['mode']) == 3):
+			return decryptDataOfb(key, info['encData'], info['totalRounds'], info['iv'])
+		elif(int(info['mode']) == 4):
+			return decryptDataCtr(key, info['encData'], info['totalRounds'], info['iv'])
+	except Exception as e:
+		print(e)
 		return False
 
 def decryptData(key, encData, totalRounds):
@@ -272,6 +281,74 @@ def decryptDataForBlock(currRound, totalRounds, key, left, right):
 	elif(currRound == 0):
 		return nextRight + right
 
+def decryptDataCbc(key, encData, totalRounds, iv):
+	binaryBlocks = generateTwelveBlockedData(encData)
+	ivBinary = getBinaryStringFor(iv)
+	allBlockResult = ''
+
+	for block in binaryBlocks:
+		blockRes = decryptDataForCbc(key, block, totalRounds, ivBinary)
+		allBlockResult += blockRes
+		ivBinary = block
+	
+	bStr = prependZeroes(allBlockResult, 12)
+	sixBlocks = [bStr[i:i+6] for i in range(0, len(bStr), 6)]
+
+	inputString = ''
+	for sblock in sixBlocks:
+		inputString += getPropFromValue(int(sblock, 2))
+
+	return {"allBlockResult": allBlockResult, "inputString": inputString}
+
+def decryptDataForCbc(key, block, totalRounds, iv):
+	l0 = block[:6]
+	r0 = block[6:]
+	cipherDecryptResult = decryptDataForBlock(int(totalRounds)-1, totalRounds, key, l0, r0)
+	xoredResult = getBinaryForDigit(getXorValue(iv, cipherDecryptResult))
+	xoredResult = prependZeroes(xoredResult, 12)
+	return xoredResult
+
+def decryptDataOfb(key, encData, totalRounds, iv):
+	binaryBlocks = generateTwelveBlockedData(encData)
+	ivBinary = getBinaryStringFor(iv)
+	allBlockResult = ''
+
+	for block in binaryBlocks:
+		blockRes = decryptDataForOfb(ivBinary, key, block, totalRounds)
+		allBlockResult += blockRes['allBlockResult']
+		ivBinary = blockRes['encValue']
+
+	bStr = prependZeroes(allBlockResult, 12)
+	sixBlocks = [bStr[i:i+6] for i in range(0, len(bStr), 6)]
+
+	inputString = ''
+	for sblock in sixBlocks:
+		inputString += getPropFromValue(int(sblock, 2))
+
+	return {"allBlockResult": allBlockResult, "inputString": inputString}
+
+def decryptDataForOfb(iv, key, block, totalRounds):
+	blockCipherResult = encryptData(key, iv, int(totalRounds))
+	xoredResult = getBinaryForDigit(getXorValue(blockCipherResult, block))
+	xoredResult = prependZeroes(xoredResult, 12)
+	return {"allBlockResult": xoredResult, "encValue": blockCipherResult}
+
+def decryptDataCtr(key, encData, totalRounds, iv):
+	allBlockResult = encryptDataCtr(key, encData, int(totalRounds), iv)
+	bStr = prependZeroes(allBlockResult, 12)
+	sixBlocks = [bStr[i:i+6] for i in range(0, len(bStr), 6)]
+
+	inputString = ''
+	for sblock in sixBlocks:
+		inputString += getPropFromValue(int(sblock, 2))
+	return {"allBlockResult": allBlockResult, "inputString": inputString}
+
+def decryptDataForCtr(nounceCtr, key, block, totalRounds):
+	blockCipherResult = encryptData(key, nounceCtr, int(totalRounds))
+	xoredResult = getBinaryForDigit(getXorValue(block, blockCipherResult))
+	xoredResult = prependZeroes(xoredResult, 12)
+	# print('xoredResult: ' +  xoredResult)
+	return blockCipherResult
 
 def getXorValue(bnum1, bnum2):
 	return int(bnum1, 2)^int(bnum2, 2)
@@ -286,10 +363,7 @@ def getRoundKey(round, key):
 	return roundKey
 
 def printResult(output, info):
-	print(u"\U0001F6EC")
-	time.sleep(0.2)
 	print ("\n")
-	# print ('================================== Result =================================================')
 	print (bcolors.OKBLUE + ":: USER INFO ::" + bcolors.ENDC)
 	print (bcolors.OKGREEN + "Name          : " + bcolors.ENDC + info['originalName'])
 	print (bcolors.OKGREEN + "Student ID    : " + bcolors.ENDC + info['studentId'])
@@ -318,22 +392,28 @@ def printResult(output, info):
 		print (bcolors.OKGREEN + 'Human Readable : ' + bcolors.ENDC + " ".join(output[i:i+6] for i in range(0, len(output), 6)))
 
 def printDecryptResult(output, info):
-	print(u"\U0001F6EC")
-	time.sleep(0.2)
 	print ("\n")
-	print (bcolors.OKBLUE + ":: ENCRYPTION INFO ::" + bcolors.ENDC)
+	print (bcolors.OKBLUE + ":: DECRYPTION INFO ::" + bcolors.ENDC)
 	print (bcolors.OKGREEN + "# Rounds : "  + bcolors.ENDC + info['totalRounds'])
 	print (bcolors.OKGREEN + "Mode(s)  : " + bcolors.ENDC + getModeName(info['mode']))
 	print ('-----\n')
-	print (bcolors.OKBLUE + ":: ENCRYPTED INFO ::" + bcolors.ENDC)
-	print (bcolors.OKGREEN + "Encrypted Data : " + bcolors.ENDC + info['encData'])
-	print (bcolors.OKGREEN + 'Human Readable : ' + bcolors.ENDC + " ".join(info['encData'][i:i+6] for i in range(0, len(info['encData']), 6)))
+	print (bcolors.OKBLUE + ":: INPUT INFO ::" + bcolors.ENDC)
+	print (bcolors.OKGREEN + "Input Data     : " + bcolors.ENDC + info['encData'])
+	print (bcolors.OKGREEN + "Human Readable : " + bcolors.ENDC + " ".join(info['encData'][i:i+6] for i in range(0, len(info['encData']), 6)))
 	print ('-----\n')
 	print (bcolors.OKBLUE + ":: DECRYPTED USER INFO ::" + bcolors.ENDC)
 	print (bcolors.OKGREEN + "Name          : " + bcolors.ENDC + output['inputString'].split()[0].replace("_", ""))
 	print (bcolors.OKGREEN + "Student ID    : " + bcolors.ENDC + output['inputString'].split()[1].replace(".", ""))
 	print (bcolors.OKGREEN + "Date of Birth : " + bcolors.ENDC + info['dob'])
 
+def prompt(message, errormessage, isvalid, isValidRegex):
+    res = None
+    while res is None:
+        res = input(bcolors.OKGREEN + str(message)+': ' + bcolors.ENDC)
+        if not isvalid(res) or not isValidRegex(res):
+            print (bcolors.FAIL + str(errormessage) + bcolors.ENDC)
+            res = None
+    return res
 
 class bcolors:
   HEADER = '\033[95m'
@@ -349,12 +429,3 @@ try:
     input = raw_input
 except NameError:
     pass
-
-def prompt(message, errormessage, isvalid, isValidRegex):
-    res = None
-    while res is None:
-        res = input(bcolors.OKGREEN + str(message)+': ' + bcolors.ENDC)
-        if not isvalid(res) or not isValidRegex(res):
-            print (bcolors.FAIL + str(errormessage) + bcolors.ENDC)
-            res = None
-    return res

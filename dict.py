@@ -21,7 +21,7 @@ def getBinaryStringFor(s):
 		digit = dictionary[character.upper()]
 		b = prependZeroes(getBinaryForDigit(digit), 6)
 		bStr = bStr + b
-   	return bStr
+	return bStr
 
 def prependZeroes(bStr, num):
 	x = len(bStr)
@@ -51,13 +51,9 @@ def getModeName(val):
 	return MODES[val]
 
 def getPropFromValue(val):
-	# print dictionary.keys()
-	# print dictionary.values()
-
-	res = dictionary.keys()[dictionary.values().index(int(val))]
-	# print ("res: " + res)
+	# print('dict values for ' + str(val))
+	# print(list(dictionary)[int(val) - 1])
+	res = list(dictionary)[int(val) - 1 ]
+	# print(dictionary.values().index(0))
+	# res = dictionary.keys()[dictionary.values().index(int(val))]
 	return res
-
-
-
-#10011100010010101110011100111001011110011101111101111110000010000110001010001110010011011100110
