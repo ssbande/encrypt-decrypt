@@ -118,20 +118,20 @@ def getDecryptionInfo():
 	if(int(mode) > 1):
 		iv = askIv()
 
-	# desEncData = ''
-	# cbcEncData = ''
-	# ofbEncData = ''
-	# ctrEncData = ''
-	# if(int(mode) == 5):
-	# 	desEncData = askEncryptedString('DES')
-	# 	cbcEncData = askEncryptedString('CBC')
-	# 	ofbEncData = askEncryptedString('OFB')
-	# 	ctrEncData = askEncryptedString('CTR')
-	# else:
-	# 	encryptedString = askEncryptedString()
+	desEncData = ''
+	cbcEncData = ''
+	ofbEncData = ''
+	ctrEncData = ''
+	if(int(mode) == 5):
+		desEncData = askEncryptedString('DES')
+		cbcEncData = askEncryptedString('CBC')
+		ofbEncData = askEncryptedString('OFB')
+		ctrEncData = askEncryptedString('CTR')
+	else:
+		encryptedString = askEncryptedString()
 
-	return {"dob": dob, "mode": mode, "totalRounds": totalRounds, "encData": encryptedString, "iv": iv }
-	# "desEncData": desEncData, "cbcEncData": cbcEncData, "ofbEncData": ofbEncData, "ctrEncData": ctrEncData}
+	return {"dob": dob, "mode": mode, "totalRounds": totalRounds, "encData": encryptedString, "iv": iv,
+	"desEncData": desEncData, "cbcEncData": cbcEncData, "ofbEncData": ofbEncData, "ctrEncData": ctrEncData}
 
 def getJulianDate(dateInstance):
 	date = datetime.datetime.strptime(dateInstance, '%Y-%m-%d').date()
@@ -392,14 +392,44 @@ def printDecryptResult(output, info):
 	print (bcolors.OKGREEN + "# Rounds : "  + bcolors.ENDC + info['totalRounds'])
 	print (bcolors.OKGREEN + "Mode(s)  : " + bcolors.ENDC + getModeName(info['mode']))
 	print ('-----\n')
-	print (bcolors.OKBLUE + ":: INPUT INFO ::" + bcolors.ENDC)
-	print (bcolors.OKGREEN + "Input Data     : " + bcolors.ENDC + info['encData'])
-	print (bcolors.OKGREEN + "Human Readable : " + bcolors.ENDC + " ".join(info['encData'][i:i+6] for i in range(0, len(info['encData']), 6)))
-	print ('-----\n')
-	print (bcolors.OKBLUE + ":: DECRYPTED USER INFO ::" + bcolors.ENDC)
-	print (bcolors.OKGREEN + "Name          : " + bcolors.ENDC + output['inputString'].split()[0].replace("X", ""))
-	print (bcolors.OKGREEN + "Student ID    : " + bcolors.ENDC + output['inputString'].split()[1].replace(".", ""))
-	print (bcolors.OKGREEN + "Date of Birth : " + bcolors.ENDC + info['dob'])
+	if(int(info['mode']) == 5):
+		print ("Result DES ----------------")
+		print (bcolors.OKBLUE + ":: INPUT INFO ::" + bcolors.ENDC)
+		print (bcolors.OKGREEN + "Input Data     : " + bcolors.ENDC + output['des']['allBlockResult'])
+		print (bcolors.OKGREEN + "Human Readable : " + bcolors.ENDC + " ".join(output['des']['allBlockResult'][i:i+6] for i in range(0, len(output['des']['allBlockResult']), 6)))
+		print ('-----\n')
+		print (bcolors.OKGREEN + 'Name: ' + bcolors.ENDC + output['des']['inputString'].split()[0].replace("X", "")) 
+		print (bcolors.OKGREEN + 'Student ID : ' + bcolors.ENDC + output['des']['inputString'].split()[1].replace(".", ""))
+		print ("Result CBC ----------------")
+		print (bcolors.OKBLUE + ":: INPUT INFO ::" + bcolors.ENDC)
+		print (bcolors.OKGREEN + "Input Data     : " + bcolors.ENDC + output['cbc']['allBlockResult'])
+		print (bcolors.OKGREEN + "Human Readable : " + bcolors.ENDC + " ".join(output['cbc']['allBlockResult'][i:i+6] for i in range(0, len(output['cbc']['allBlockResult']), 6)))
+		print ('-----\n')
+		print (bcolors.OKGREEN + 'Name: ' + bcolors.ENDC + output['cbc']['inputString'].split()[0].replace("X", "")) 
+		print (bcolors.OKGREEN + 'Student ID : ' + bcolors.ENDC + output['cbc']['inputString'].split()[1].replace(".", ""))
+		print ("Result OFB ----------------")
+		print (bcolors.OKBLUE + ":: INPUT INFO ::" + bcolors.ENDC)
+		print (bcolors.OKGREEN + "Input Data     : " + bcolors.ENDC + output['ofb']['allBlockResult'])
+		print (bcolors.OKGREEN + "Human Readable : " + bcolors.ENDC + " ".join(output['ofb']['allBlockResult'][i:i+6] for i in range(0, len(output['ofb']['allBlockResult']), 6)))
+		print ('-----\n')
+		print (bcolors.OKGREEN + 'Name: ' + bcolors.ENDC + output['ofb']['inputString'].split()[0].replace("X", "")) 
+		print (bcolors.OKGREEN + 'Student ID : ' + bcolors.ENDC + output['ofb']['inputString'].split()[1].replace(".", ""))
+		print ("Result CTR ----------------")
+		print (bcolors.OKBLUE + ":: INPUT INFO ::" + bcolors.ENDC)
+		print (bcolors.OKGREEN + "Input Data     : " + bcolors.ENDC + output['ctr']['allBlockResult'])
+		print (bcolors.OKGREEN + "Human Readable : " + bcolors.ENDC + " ".join(output['ctr']['allBlockResult'][i:i+6] for i in range(0, len(output['ctr']['allBlockResult']), 6)))
+		print ('-----\n')
+		print (bcolors.OKGREEN + 'Name: ' + bcolors.ENDC + output['ctr']['inputString'].split()[0].replace("X", "")) 
+		print (bcolors.OKGREEN + 'Student ID : ' + bcolors.ENDC + output['ctr']['inputString'].split()[1].replace(".", ""))
+	else:
+		print (bcolors.OKBLUE + ":: INPUT INFO ::" + bcolors.ENDC)
+		print (bcolors.OKGREEN + "Input Data     : " + bcolors.ENDC + info['encData'])
+		print (bcolors.OKGREEN + "Human Readable : " + bcolors.ENDC + " ".join(info['encData'][i:i+6] for i in range(0, len(info['encData']), 6)))
+		print ('-----\n')
+		print (bcolors.OKBLUE + ":: DECRYPTED USER INFO ::" + bcolors.ENDC)
+		print (bcolors.OKGREEN + "Name          : " + bcolors.ENDC + output['inputString'].split()[0].replace("X", ""))
+		print (bcolors.OKGREEN + "Student ID    : " + bcolors.ENDC + output['inputString'].split()[1].replace(".", ""))
+		print (bcolors.OKGREEN + "Date of Birth : " + bcolors.ENDC + info['dob'])
 
 def printEncryptDecryptResult(output, decryptionOutput, info):
 	print ('-----\n')
