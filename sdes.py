@@ -1,12 +1,11 @@
 from helper import getInfo, getJulianDate, getNineBitKey, getBinaryDataForInput, encryptWithSelectedMode, printResult, askAction, getDecryptionInfo, decryptWithSelectedMode, printDecryptResult, printEncryptDecryptResult, askEncryptedString
 
-print('============================== Simplified DES =============================================')
+print('============================== DESPACITO =============================================')
 
 action = askAction()
 
 if(action == 'E'):
 	info = getInfo()
-	print(info)
 	julianDate = getJulianDate(info['dob'])
 	key = getNineBitKey(julianDate)
 	binary = getBinaryDataForInput(info)
