@@ -85,7 +85,7 @@ def askEncryptedString(decryptOption = ''):
 	return prompt(
 			message= ques,
 			errormessage="it is mandatory. \nAllowed: Only binary numbers (0/1).",
-			isvalid= lambda m: len(m) > 0,
+			isvalid= lambda m: len(m) > 11,
 			isValidRegex= lambda m: re.match("^-?[0-1]+$", m))
 
 def getJulianDate(dateInstance):
