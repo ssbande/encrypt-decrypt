@@ -1,4 +1,4 @@
-from dict import getBinaryForDigit, getS1ValueFor, getS2ValueFor, getBinaryStringFor, prependZeroes, getModeName, getPropFromValue, getDictionaryDataFromBinary
+from dict import prependZeroes, getBinaryForDigit, getModeName, CHAR_FILL
 import re
 import datetime
 import time
@@ -77,7 +77,7 @@ def askIv():
 		errormessage="IV is mandatory. \nAllowed: Only alphabets.",
 		isvalid= lambda m: len(m) == 2,
 		isValidRegex= lambda m: re.match("^[A-Za-z]*$", m))
-
+    
 def askEncryptedString(decryptOption = ''):
 	ques = "Enter encrypted string"
 	if(decryptOption != ''):
@@ -88,51 +88,6 @@ def askEncryptedString(decryptOption = ''):
 			isvalid= lambda m: len(m) > 0,
 			isValidRegex= lambda m: re.match("^-?[0-1]+$", m))
 
-def getInfo():
-	name = askName()
-	originalName = name
-	nameLen = len(name)
-	if(nameLen != 10):
-		remainingDigits = (10 - nameLen)
-		for x in range(0, remainingDigits):
-			name = name + 'X'
-
-	studentId = askStudentId()
-	dob = askDob()
-	totalRounds = askRounds()
-	mode = askMode()
-
-	iv = ''
-	if(int(mode) > 1):
-		iv = askIv()
-
-	return {"name": name.upper(), "studentId": studentId, "totalRounds": totalRounds, "dob": dob, "mode": mode, "iv": iv, "originalName": originalName.upper()}
-
-def getDecryptionInfo():
-	dob = askDob()
-	totalRounds = askRounds()
-	encryptedString = ''
-	mode = askMode()
-
-	iv = ''
-	if(int(mode) > 1):
-		iv = askIv()
-
-	desEncData = ''
-	cbcEncData = ''
-	ofbEncData = ''
-	ctrEncData = ''
-	if(int(mode) == 5):
-		desEncData = askEncryptedString('DES')
-		cbcEncData = askEncryptedString('CBC')
-		ofbEncData = askEncryptedString('OFB')
-		ctrEncData = askEncryptedString('CTR')
-	else:
-		encryptedString = askEncryptedString()
-
-	return {"dob": dob, "mode": mode, "totalRounds": totalRounds, "encData": encryptedString, "iv": iv,
-	"desEncData": desEncData, "cbcEncData": cbcEncData, "ofbEncData": ofbEncData, "ctrEncData": ctrEncData}
-
 def getJulianDate(dateInstance):
 	date = datetime.datetime.strptime(dateInstance, '%Y-%m-%d').date()
 	return int(date.strftime('%j'))
@@ -142,208 +97,14 @@ def getNineBitKey(key):
 	# bDigit = '111000111'
 	return prependZeroes(bDigit, 9)
 
-def getBinaryDataForInput(info):
-	plainText = info['name'] + ' ' + info['studentId'] + '.'
-	binary = getBinaryStringFor(plainText)
-	return binary
-
-def encryptWithSelectedMode(key, binary, totalRounds, mode, iv):
-	try:
-		if(mode == 1):
-			return encryptData(key, binary, totalRounds)
-		elif(mode == 2):
-			return encryptDataCbc(key, binary, totalRounds, iv)
-		elif(mode == 3):
-			return encryptDataOfb(key, binary, totalRounds, iv)
-		elif(mode == 4):
-			return encryptDataCtr(key, binary, totalRounds, iv)
-		else:
-			return {
-				"des": encryptData(key, binary, totalRounds),
-				"cbc": encryptDataCbc(key, binary, totalRounds, iv),
-				"ofb": encryptDataOfb(key, binary, totalRounds, iv),
-				"ctr": encryptDataCtr(key, binary, totalRounds, iv)
-			}
-	except Exception as e:
-		print (e)
-		return False
-
 def generateTwelveBlockedData(binary):
 	bStr = prependZeroes(binary, 12)
 	binaryBlocks = [bStr[i:i+12] for i in range(0, len(bStr), 12)]
 	return binaryBlocks
 
-def encryptDataCbc(key, binary, totalRounds, iv):
-	ivBinary = getBinaryStringFor(iv)
-	binaryBlocks = generateTwelveBlockedData(binary)
-	allBlockResult = ''
 
-	for block in binaryBlocks:
-		blockRes = generateDataForCbc(ivBinary, block, key, totalRounds)
-		ivBinary = blockRes
-		allBlockResult += blockRes
-	return allBlockResult
 
-def generateDataForCbc(ivBinary, binary, key, totalRounds):
-	xorIvxPt = getBinaryForDigit(getXorValue(ivBinary, binary))
-	xorIvxPt = prependZeroes(xorIvxPt, 12)
-	blockCipherResult = encryptData(key, xorIvxPt, totalRounds)
-	return blockCipherResult
 
-def encryptDataOfb(key, binary, totalRounds, iv):
-	ivBinary = getBinaryStringFor(iv)
-	binaryBlocks = generateTwelveBlockedData(binary)
-	allBlockResult = ''
-
-	for block in binaryBlocks:
-		blockRes = generateDataForOfb(ivBinary, block, key, totalRounds)
-		ivBinary = blockRes['blockCipherResult']
-		allBlockResult += blockRes['xorResult']
-	return allBlockResult
-
-def generateDataForOfb(ivBinary, binary, key, totalRounds):
-	blockCipherResult = encryptData(key, ivBinary, totalRounds)
-	xorBCrxPt = getBinaryForDigit(getXorValue(binary, blockCipherResult))
-	xorBCrxPt = prependZeroes(xorBCrxPt, 12)
-	return {"blockCipherResult": blockCipherResult, "xorResult": xorBCrxPt}
-
-def encryptDataCtr(key, binary, totalRounds, iv):
-	ivBinary = getBinaryStringFor(iv)
-	binaryBlocks = generateTwelveBlockedData(binary)
-	allBlockResult = ''
-
-	for x in range(0, len(binaryBlocks)):
-		counter = getBinaryForDigit(x)
-		counter = prependZeroes(counter, 6)
-		ctrInput = getBinaryForDigit(getXorValue(ivBinary, counter))
-		blockRes = generateDataForCtr(ctrInput, binaryBlocks[x], key, totalRounds)
-		print("block: " + str(binaryBlocks[x]) + " counter: " + str(counter) + " ctrNounce: " + str(ctrInput) + " ctrNoune#: " + str(getXorValue(ivBinary, counter)) + " res: " + str(blockRes))
-		allBlockResult += blockRes
-	return allBlockResult
-
-def generateDataForCtr(nonceCounter, binary, key, totalRounds):
-	blockCipherResult = encryptData(key, nonceCounter, totalRounds)
-	xorBCrxPt = getBinaryForDigit(getXorValue(binary, blockCipherResult))
-	xorBCrxPt = prependZeroes(xorBCrxPt, 12)
-	return xorBCrxPt
-
-def encryptData(key, binary, totalRounds):
-	binaryBlocks = generateTwelveBlockedData(binary)
-	allBlockResult = ''
-	
-	for block in binaryBlocks:
-		l0 = block[:6]
-		r0 = block[6:]
-		blockRes = generateDataForBlock(0, totalRounds, key, l0, r0)
-		allBlockResult += blockRes
-	return allBlockResult
-
-def generateDataForBlock(currRound, totalRounds, key, left, right):
-	edKey = getRoundKey(currRound, key)
-	expRight = right[0:2] + right[3] + right[2] + right[3] + right[2] + right[4:]
-	xorKeyxRight = getBinaryForDigit(getXorValue(edKey, expRight))
-	xorKeyxRight = prependZeroes(xorKeyxRight, 8)
-	nr = getS1ValueFor(xorKeyxRight[:4]) + getS2ValueFor(xorKeyxRight[4:])
-	nextRight = getBinaryForDigit(getXorValue(left, nr))
-	nextRight = prependZeroes(nextRight, 6)
-
-	if(currRound < totalRounds-1):
-		return generateDataForBlock(currRound+1, totalRounds, key, right, nextRight)
-	elif(currRound == totalRounds-1):
-		return nextRight + right
-
-def decryptWithSelectedMode(key, info):
-	try:
-		if(int(info['mode']) == 1):
-			return decryptData(key, info['encData'], info['totalRounds'])
-		elif(int(info['mode']) == 2):
-			return decryptDataCbc(key, info['encData'], info['totalRounds'], info['iv'])
-		elif(int(info['mode']) == 3):
-			return decryptDataOfb(key, info['encData'], info['totalRounds'], info['iv'])
-		elif(int(info['mode']) == 4):
-			return decryptDataCtr(key, info['encData'], info['totalRounds'], info['iv'])
-		else:
-			return {
-				"des": decryptData(key, info['desEncData'], info['totalRounds']),
-				"cbc": decryptDataCbc(key, info['cbcEncData'], info['totalRounds'], info['iv']),
-				"ofb": decryptDataOfb(key, info['ofbEncData'], info['totalRounds'], info['iv']),
-				"ctr": decryptDataCtr(key, info['ctrEncData'], info['totalRounds'], info['iv'])
-			}
-	except Exception as e:
-		print(e)
-		return False
-
-def decryptData(key, encData, totalRounds):
-	binaryBlocks = generateTwelveBlockedData(encData)
-	allBlockResult = ''
-
-	for block in binaryBlocks:
-		l0 = block[:6]
-		r0 = block[6:]
-		blockRes = decryptDataForBlock(int(totalRounds)-1, totalRounds, key, l0, r0)
-		allBlockResult += blockRes
-	
-	inputString = getDictionaryDataFromBinary(allBlockResult)
-	return {"allBlockResult": allBlockResult, "inputString": inputString}
-
-def decryptDataForBlock(currRound, totalRounds, key, left, right):
-	edKey = getRoundKey(currRound, key)
-	expRight = right[0:2] + right[3] + right[2] + right[3] + right[2] + right[4:]
-	xorKeyxRight = getBinaryForDigit(getXorValue(edKey, expRight))
-	xorKeyxRight = prependZeroes(xorKeyxRight, 8)
-	nr = getS1ValueFor(xorKeyxRight[:4]) + getS2ValueFor(xorKeyxRight[4:])
-	nextRight = getBinaryForDigit(getXorValue(left, nr))
-	nextRight = prependZeroes(nextRight, 6)
-	newNextRight = prependZeroes(getBinaryForDigit(getXorValue(left, nextRight)), 6)
-
-	if(currRound > 0):
-		return decryptDataForBlock(currRound-1, totalRounds, key, right, nextRight)
-	elif(currRound == 0):
-		return nextRight + right
-
-def decryptDataCbc(key, encData, totalRounds, iv):
-	binaryBlocks = generateTwelveBlockedData(encData)
-	ivBinary = getBinaryStringFor(iv)
-	allBlockResult = ''
-
-	for block in binaryBlocks:
-		blockRes = decryptDataForCbc(key, block, totalRounds, ivBinary)
-		allBlockResult += blockRes
-		ivBinary = block
-
-	inputString = getDictionaryDataFromBinary(allBlockResult)
-	return {"allBlockResult": allBlockResult, "inputString": inputString}
-
-def decryptDataForCbc(key, block, totalRounds, iv):
-	l0 = block[:6]
-	r0 = block[6:]
-	cipherDecryptResult = decryptDataForBlock(int(totalRounds)-1, totalRounds, key, l0, r0)
-	xoredResult = getBinaryForDigit(getXorValue(iv, cipherDecryptResult))
-	xoredResult = prependZeroes(xoredResult, 12)
-	return xoredResult
-
-def decryptDataOfb(key, encData, totalRounds, iv):
-	binaryBlocks = generateTwelveBlockedData(encData)
-	ivBinary = getBinaryStringFor(iv)
-	allBlockResult = ''
-
-	for block in binaryBlocks:
-		blockRes = decryptDataForOfb(ivBinary, key, block, totalRounds)
-		allBlockResult += blockRes['allBlockResult']
-		ivBinary = blockRes['encValue']
-	inputString = getDictionaryDataFromBinary(allBlockResult)
-	return {"allBlockResult": allBlockResult, "inputString": inputString}
-
-def decryptDataForOfb(iv, key, block, totalRounds):
-	blockCipherResult = encryptData(key, iv, int(totalRounds))
-	xoredResult = getBinaryForDigit(getXorValue(blockCipherResult, block))
-	xoredResult = prependZeroes(xoredResult, 12)
-	return {"allBlockResult": xoredResult, "encValue": blockCipherResult}
-
-def decryptDataCtr(key, encData, totalRounds, iv):
-	allBlockResult = encryptDataCtr(key, encData, int(totalRounds), iv)
-	inputString = getDictionaryDataFromBinary(allBlockResult)
-	return {"allBlockResult": allBlockResult, "inputString": inputString}
 
 def getXorValue(bnum1, bnum2):
 	return int(bnum1, 2)^int(bnum2, 2)
@@ -398,28 +159,28 @@ def printDecryptResult(output, info):
 		print (bcolors.OKGREEN + "Input Data     : " + bcolors.ENDC + output['des']['allBlockResult'])
 		print (bcolors.OKGREEN + "Human Readable : " + bcolors.ENDC + " ".join(output['des']['allBlockResult'][i:i+6] for i in range(0, len(output['des']['allBlockResult']), 6)))
 		print ('-----\n')
-		print (bcolors.OKGREEN + 'Name: ' + bcolors.ENDC + output['des']['inputString'].split()[0].replace("X", "")) 
+		print (bcolors.OKGREEN + 'Name: ' + bcolors.ENDC + output['des']['inputString'].split()[0].replace(CHAR_FILL, "")) 
 		print (bcolors.OKGREEN + 'Student ID : ' + bcolors.ENDC + output['des']['inputString'].split()[1].replace(".", ""))
 		print ("Result CBC ----------------")
 		print (bcolors.OKBLUE + ":: INPUT INFO ::" + bcolors.ENDC)
 		print (bcolors.OKGREEN + "Input Data     : " + bcolors.ENDC + output['cbc']['allBlockResult'])
 		print (bcolors.OKGREEN + "Human Readable : " + bcolors.ENDC + " ".join(output['cbc']['allBlockResult'][i:i+6] for i in range(0, len(output['cbc']['allBlockResult']), 6)))
 		print ('-----\n')
-		print (bcolors.OKGREEN + 'Name: ' + bcolors.ENDC + output['cbc']['inputString'].split()[0].replace("X", "")) 
+		print (bcolors.OKGREEN + 'Name: ' + bcolors.ENDC + output['cbc']['inputString'].split()[0].replace(CHAR_FILL, "")) 
 		print (bcolors.OKGREEN + 'Student ID : ' + bcolors.ENDC + output['cbc']['inputString'].split()[1].replace(".", ""))
 		print ("Result OFB ----------------")
 		print (bcolors.OKBLUE + ":: INPUT INFO ::" + bcolors.ENDC)
 		print (bcolors.OKGREEN + "Input Data     : " + bcolors.ENDC + output['ofb']['allBlockResult'])
 		print (bcolors.OKGREEN + "Human Readable : " + bcolors.ENDC + " ".join(output['ofb']['allBlockResult'][i:i+6] for i in range(0, len(output['ofb']['allBlockResult']), 6)))
 		print ('-----\n')
-		print (bcolors.OKGREEN + 'Name: ' + bcolors.ENDC + output['ofb']['inputString'].split()[0].replace("X", "")) 
+		print (bcolors.OKGREEN + 'Name: ' + bcolors.ENDC + output['ofb']['inputString'].split()[0].replace(CHAR_FILL, "")) 
 		print (bcolors.OKGREEN + 'Student ID : ' + bcolors.ENDC + output['ofb']['inputString'].split()[1].replace(".", ""))
 		print ("Result CTR ----------------")
 		print (bcolors.OKBLUE + ":: INPUT INFO ::" + bcolors.ENDC)
 		print (bcolors.OKGREEN + "Input Data     : " + bcolors.ENDC + output['ctr']['allBlockResult'])
 		print (bcolors.OKGREEN + "Human Readable : " + bcolors.ENDC + " ".join(output['ctr']['allBlockResult'][i:i+6] for i in range(0, len(output['ctr']['allBlockResult']), 6)))
 		print ('-----\n')
-		print (bcolors.OKGREEN + 'Name: ' + bcolors.ENDC + output['ctr']['inputString'].split()[0].replace("X", "")) 
+		print (bcolors.OKGREEN + 'Name: ' + bcolors.ENDC + output['ctr']['inputString'].split()[0].replace(CHAR_FILL, "")) 
 		print (bcolors.OKGREEN + 'Student ID : ' + bcolors.ENDC + output['ctr']['inputString'].split()[1].replace(".", ""))
 	else:
 		print (bcolors.OKBLUE + ":: INPUT INFO ::" + bcolors.ENDC)
@@ -427,7 +188,7 @@ def printDecryptResult(output, info):
 		print (bcolors.OKGREEN + "Human Readable : " + bcolors.ENDC + " ".join(info['encData'][i:i+6] for i in range(0, len(info['encData']), 6)))
 		print ('-----\n')
 		print (bcolors.OKBLUE + ":: DECRYPTED USER INFO ::" + bcolors.ENDC)
-		print (bcolors.OKGREEN + "Name          : " + bcolors.ENDC + output['inputString'].split()[0].replace("X", ""))
+		print (bcolors.OKGREEN + "Name          : " + bcolors.ENDC + output['inputString'].split()[0].replace(CHAR_FILL, ""))
 		print (bcolors.OKGREEN + "Student ID    : " + bcolors.ENDC + output['inputString'].split()[1].replace(".", ""))
 		print (bcolors.OKGREEN + "Date of Birth : " + bcolors.ENDC + info['dob'])
 
@@ -443,28 +204,28 @@ def printEncryptDecryptResult(output, decryptionOutput, info):
 		print (bcolors.OKGREEN + 'Encrypted Value: ' + bcolors.ENDC + output['des']) 
 		print (bcolors.OKGREEN + 'Human Readable : ' + bcolors.ENDC + " ".join(output['des'][i:i+6] for i in range(0, len(output['des']), 6)))
 		print ("Result DES Decryption ----------------")
-		print (bcolors.OKGREEN + 'Name          : ' + bcolors.ENDC + decryptionOutput['des']['inputString'].split()[0].replace("X", ""))
+		print (bcolors.OKGREEN + 'Name          : ' + bcolors.ENDC + decryptionOutput['des']['inputString'].split()[0].replace(CHAR_FILL, ""))
 		print (bcolors.OKGREEN + "Student ID    : " + bcolors.ENDC + decryptionOutput['des']['inputString'].split()[1].replace(".", ""))
 		print (bcolors.OKGREEN + "Date of Birth : " + bcolors.ENDC + info['dob'])
 		print ("Result CBC Encryption ----------------")
 		print (bcolors.OKGREEN + 'Encrypted Value: ' + bcolors.ENDC + output['cbc']) 
 		print (bcolors.OKGREEN + 'Human Readable : ' + bcolors.ENDC + " ".join(output['cbc'][i:i+6] for i in range(0, len(output['cbc']), 6)))
 		print ("Result CBC Decryption ----------------")
-		print (bcolors.OKGREEN + 'Name          : ' + bcolors.ENDC + decryptionOutput['cbc']['inputString'].split()[0].replace("X", ""))
+		print (bcolors.OKGREEN + 'Name          : ' + bcolors.ENDC + decryptionOutput['cbc']['inputString'].split()[0].replace(CHAR_FILL, ""))
 		print (bcolors.OKGREEN + "Student ID    : " + bcolors.ENDC + decryptionOutput['cbc']['inputString'].split()[1].replace(".", ""))
 		print (bcolors.OKGREEN + "Date of Birth : " + bcolors.ENDC + info['dob'])
 		print ("Result OFB ----------------")
 		print (bcolors.OKGREEN + 'Encrypted Value: ' + bcolors.ENDC + output['ofb']) 
 		print (bcolors.OKGREEN + 'Human Readable : ' + bcolors.ENDC + " ".join(output['ofb'][i:i+6] for i in range(0, len(output['ofb']), 6)))
 		print ("Result OFB Decryption ----------------")
-		print (bcolors.OKGREEN + 'Name          : ' + bcolors.ENDC + decryptionOutput['ofb']['inputString'].split()[0].replace("X", ""))
+		print (bcolors.OKGREEN + 'Name          : ' + bcolors.ENDC + decryptionOutput['ofb']['inputString'].split()[0].replace(CHAR_FILL, ""))
 		print (bcolors.OKGREEN + "Student ID    : " + bcolors.ENDC + decryptionOutput['ofb']['inputString'].split()[1].replace(".", ""))
 		print (bcolors.OKGREEN + "Date of Birth : " + bcolors.ENDC + info['dob'])
 		print ("Result CTR ----------------")
 		print (bcolors.OKGREEN + 'Encrypted Value: ' + bcolors.ENDC + output['ctr']) 
 		print (bcolors.OKGREEN + 'Human Readable : ' + bcolors.ENDC + " ".join(output['ctr'][i:i+6] for i in range(0, len(output['ctr']), 6)))
 		print ("Result CTR Decryption ----------------")
-		print (bcolors.OKGREEN + 'Name          : ' + bcolors.ENDC + decryptionOutput['ctr']['inputString'].split()[0].replace("X", ""))
+		print (bcolors.OKGREEN + 'Name          : ' + bcolors.ENDC + decryptionOutput['ctr']['inputString'].split()[0].replace(CHAR_FILL, ""))
 		print (bcolors.OKGREEN + "Student ID    : " + bcolors.ENDC + decryptionOutput['ctr']['inputString'].split()[1].replace(".", ""))
 		print (bcolors.OKGREEN + "Date of Birth : " + bcolors.ENDC + info['dob'])
 	else:
@@ -472,7 +233,7 @@ def printEncryptDecryptResult(output, decryptionOutput, info):
 		print (bcolors.OKGREEN + 'Encrypted Value: ' + bcolors.ENDC + output) 
 		print (bcolors.OKGREEN + 'Human Readable : ' + bcolors.ENDC + " ".join(output[i:i+6] for i in range(0, len(output), 6)))
 		print ("Result Decryption ----------------")
-		print (bcolors.OKGREEN + 'Name          : ' + bcolors.ENDC + decryptionOutput['inputString'].split()[0].replace("X", ""))
+		print (bcolors.OKGREEN + 'Name          : ' + bcolors.ENDC + decryptionOutput['inputString'].split()[0].replace(CHAR_FILL, ""))
 		print (bcolors.OKGREEN + "Student ID    : " + bcolors.ENDC + decryptionOutput['inputString'].split()[1].replace(".", ""))
 		print (bcolors.OKGREEN + "Date of Birth : " + bcolors.ENDC + info['dob'])
 

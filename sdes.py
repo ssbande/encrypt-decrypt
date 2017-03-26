@@ -1,16 +1,20 @@
-from helper import getInfo, getJulianDate, getNineBitKey, getBinaryDataForInput, encryptWithSelectedMode, printResult, askAction, getDecryptionInfo, decryptWithSelectedMode, printDecryptResult, printEncryptDecryptResult, askEncryptedString
+from helper import getJulianDate, getNineBitKey, printResult, askAction, printDecryptResult, printEncryptDecryptResult, askEncryptedString
+from encryption import getInfo, getBinaryDataForInput, encryptWithSelectedMode
+from decryption import getDecryptionInfo, decryptWithSelectedMode
 
 print('============================== DESPACITO =============================================')
 
 action = askAction()
 
 if(action == 'E'):
-	info = getInfo()
-	julianDate = getJulianDate(info['dob'])
-	key = getNineBitKey(julianDate)
-	binary = getBinaryDataForInput(info)
-	totalRounds = int(info['totalRounds'])
-	result = encryptWithSelectedMode(key, binary, totalRounds, int(info['mode']), info['iv'])
+	info = getInfo() 
+	result = encryptWithSelectedMode(
+    getNineBitKey(getJulianDate(info['dob'])), 
+    getBinaryDataForInput(info), 
+    int(info['totalRounds']), 
+    int(info['mode']), 
+    info['iv']
+  )
 
 	if(result == False):
 		print("\nsome error occurred. check the input")
@@ -18,18 +22,25 @@ if(action == 'E'):
 		printResult(result, info)
 elif(action == 'D'):
 	decryptionInfo = getDecryptionInfo()
-	dKey = getNineBitKey(getJulianDate(decryptionInfo['dob']))
-	decryptedResult = decryptWithSelectedMode(dKey, decryptionInfo)
+	decryptedResult = decryptWithSelectedMode(
+    getNineBitKey(getJulianDate(decryptionInfo['dob'])), 
+    decryptionInfo
+  )
+
 	if(decryptedResult == False):
 		print("\nsome error occurred. try again")
 	else:
 		printDecryptResult(decryptedResult, decryptionInfo)
 elif(action == 'B'):
 	info = getInfo()
-	key = getNineBitKey(getJulianDate(info['dob']))
-	binary = getBinaryDataForInput(info)
-	totalRounds = int(info['totalRounds'])
-	result = encryptWithSelectedMode(key, binary, totalRounds, int(info['mode']), info['iv'])
+	result = encryptWithSelectedMode(
+    getNineBitKey(getJulianDate(info['dob'])), 
+    getBinaryDataForInput(info), 
+    int(info['totalRounds']), 
+    int(info['mode']), 
+    info['iv']
+  )
+  
 	decryptedResult = ''
 	resultOk = True
 	if(result == False):
@@ -43,7 +54,7 @@ elif(action == 'B'):
 		else:
 			info['encData'] = result
 		
-		decryptResult = decryptWithSelectedMode(key, info)
+		decryptResult = decryptWithSelectedMode(getNineBitKey(getJulianDate(info['dob'])), info)
 		if(decryptResult == False):
 			resultOk = False
 		else:

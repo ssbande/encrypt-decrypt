@@ -1,3 +1,4 @@
+
 dictionary = {'A':1,'B':2,'C':3,'D':4,'E':5,'F':6,'G':7,'H':8,\
             'I':9,'J':10,'K':11,'L':12,'M':13,'N':14,'O':15,\
             'P':16,'Q':17,'R':18,'S':19,'T':20,'U':21,'V':22,\
@@ -15,6 +16,8 @@ S2={'0000':'100','0001':'000','0010':'110','0011':'101','0100':'111'\
 
 MODES ={'1': 'DES', '2':'CBC', '3':'OFB', '4':'CTR', '5':'DES\nCBC\nOFB\nCTR'}
 
+CHAR_FILL = '_'
+
 def getBinaryStringFor(s):
 	bStr = ''
 	for character in s:
@@ -24,7 +27,7 @@ def getBinaryStringFor(s):
 	return bStr
 
 def prependZeroes(bStr, num):
-	x = len(bStr)
+  	x = len(bStr)
 	if(x%num != 0):
 		remainingDigits = (num - x%num)
 		for x in range(0, remainingDigits):
@@ -35,7 +38,7 @@ def getBinaryForDigit(digit):
 	binary = ''
 	if(digit == 0):
 		binary = '0'
-
+    
 	while digit>0:
 			binary+=str(digit%2)
 			digit=digit//2
@@ -51,10 +54,11 @@ def getModeName(val):
 	return MODES[val]
 
 def getPropFromValue(val):
-	# print('dict values for ' + str(val))
-	# print(list(dictionary)[int(val) - 1])
+  # for python 3.7+
 	# res = list(dictionary)[int(val) - 1 ]
 	# print(dictionary.values().index(int(val)))
+
+  # for python 2.6+
 	res = dictionary.keys()[dictionary.values().index(int(val))]
 	return res
 
